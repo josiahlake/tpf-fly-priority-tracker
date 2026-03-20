@@ -36,9 +36,11 @@ const sb = {
 
 import { useState, useEffect } from "react";
 
-const TEAM_MEMBERS = ["S. Overton", "M. Williams", "M. d'Auvergne"];
+// Updated team members (shorter names)
+const TEAM_MEMBERS = ["Ov", "Laurie", "Marco", "Max", "Serena", "Josiah"];
 const BUSINESSES = ["FLY", "TPF", "Support"];
-const STATUS_OPTIONS = ["Not Started", "In Progress", "Done", "Pushed"];
+// "Pushed" replaced with "Cancelled"
+const STATUS_OPTIONS = ["Not Started", "In Progress", "Done", "Cancelled"];
 const PRIORITY_OPTIONS = ["HI", "MID", "LOW"];
 
 const QUADRANTS = [
@@ -49,7 +51,7 @@ const QUADRANTS = [
 ];
 
 const BIZ_COLORS = { FLY: { bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe" }, TPF: { bg:"#f5f3ff", color:"#6d28d9", border:"#ddd6fe" }, Support: { bg:"#f0fdf4", color:"#166534", border:"#bbf7d0" } };
-const STATUS_STYLES = { "Not Started":{ bg:"#f1f5f9", color:"#475569" }, "In Progress":{ bg:"#fef9c3", color:"#92400e" }, Done:{ bg:"#dcfce7", color:"#166534" }, Pushed:{ bg:"#ede9fe", color:"#6d28d9" } };
+const STATUS_STYLES = { "Not Started":{ bg:"#f1f5f9", color:"#475569" }, "In Progress":{ bg:"#fef9c3", color:"#92400e" }, Done:{ bg:"#dcfce7", color:"#166534" }, Cancelled:{ bg:"#f1f5f9", color:"#9ca3af" } };
 const PRIORITY_STYLES = { HI:{ bg:"#fee2e2", color:"#991b1b" }, MID:{ bg:"#fef3c7", color:"#92400e" }, LOW:{ bg:"#dcfce7", color:"#166534" } };
 
 function genId() { return Math.random().toString(36).slice(2,9); }
@@ -57,6 +59,11 @@ function getWeekLabel() {
   const d = new Date();
   d.setDate(d.getDate() - d.getDay() + 1);
   return `Week of ${d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}`;
+}
+function formatDateTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }) + " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function Tag({ label, style }) {
@@ -90,11 +97,16 @@ function TaskCard({ task, quadrant, onUpdate, onDelete, onMove }) {
   const [draft, setDraft] = useState(task.text);
   const [expanded, setExpanded] = useState(false);
   const [showMove, setShowMove] = useState(false);
-  const save = () => { if (draft.trim()) onUpdate({...task,text:draft.trim()}); setEditing(false); };
+
+  const save = () => {
+    if (draft.trim()) onUpdate({...task, text:draft.trim(), updated_at: new Date().toISOString()});
+    setEditing(false);
+  };
   const ss = STATUS_STYLES[task.status]||STATUS_STYLES["Not Started"];
   const ps = PRIORITY_STYLES[task.priority]||PRIORITY_STYLES["MID"];
   const bs = BIZ_COLORS[task.biz]||BIZ_COLORS["FLY"];
   const subtaskPct = task.subtasks?.length ? Math.round(task.subtasks.filter(s=>s.done).length/task.subtasks.length*100) : null;
+
   return (
     <div style={{background:"#fff",border:`1.5px solid ${quadrant.border}`,borderRadius:"10px",padding:"10px 12px",marginBottom:"7px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",position:"relative"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 3px 10px rgba(0,0,0,0.10)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.05)"}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"5px"}}>
@@ -104,7 +116,7 @@ function TaskCard({ task, quadrant, onUpdate, onDelete, onMove }) {
           {task.subtasks?.length>0 && <Tag label={`${task.subtasks.filter(s=>s.done).length}/${task.subtasks.length} steps`} style={{background:subtaskPct===100?"#dcfce7":"#f1f5f9",color:subtaskPct===100?"#166534":"#64748b"}}/>}
         </div>
         <div style={{display:"flex",gap:"2px"}}>
-          <button onClick={()=>setExpanded(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",opacity:0.4,padding:"1px 3px"}}>{expanded?"▲":"▼"}</button>
+          <button onClick={()=>setExpanded(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",opacity:0.4,padding:"1px 3px"}} title="Expand for notes & details">{expanded?"▲":"▼"}</button>
           <div style={{position:"relative"}}>
             <button onClick={()=>setShowMove(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",opacity:0.4,padding:"1px 3px"}}>⇄</button>
             {showMove && <div style={{position:"absolute",right:0,top:"20px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"4px",zIndex:100,boxShadow:"0 4px 12px rgba(0,0,0,0.12)",minWidth:"120px"}}>{QUADRANTS.filter(q=>q.id!==quadrant.id).map(q=>(<button key={q.id} onClick={()=>{onMove(q.id);setShowMove(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"none",border:"none",padding:"5px 8px",fontSize:"11px",cursor:"pointer",borderRadius:"5px",color:q.color,fontWeight:700}} onMouseEnter={e=>e.currentTarget.style.background=q.bg} onMouseLeave={e=>e.currentTarget.style.background="none"}>→ {q.label}</button>))}</div>}
@@ -112,32 +124,41 @@ function TaskCard({ task, quadrant, onUpdate, onDelete, onMove }) {
           <button onClick={()=>onDelete(task.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",opacity:0.35,padding:"1px 3px"}}>✕</button>
         </div>
       </div>
+
       {editing ? <input autoFocus value={draft} onChange={e=>setDraft(e.target.value)} onBlur={save} onKeyDown={e=>e.key==="Enter"&&save()} style={{width:"100%",border:"none",outline:"none",fontSize:"13px",fontFamily:"inherit",background:"transparent",marginBottom:"6px"}}/> : <div onClick={()=>setEditing(true)} style={{fontSize:"13px",fontWeight:500,color:"#0f172a",cursor:"text",lineHeight:1.4,marginBottom:"5px"}}>{task.text}</div>}
+
       {task.subtasks?.length>0 && !expanded && <div style={{height:"3px",background:"#e2e8f0",borderRadius:"99px",marginBottom:"5px",overflow:"hidden"}}><div style={{height:"100%",width:`${subtaskPct}%`,background:subtaskPct===100?"#22c55e":"#3b82f6",borderRadius:"99px"}}/></div>}
+
       <div style={{display:"flex",gap:"5px",alignItems:"center",flexWrap:"wrap"}}>
         <Tag label={task.status} style={{background:ss.bg,color:ss.color}}/>
         {task.assignee && <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:500}}>👤 {task.assignee}</span>}
         {task.due && <span style={{fontSize:"11px",color:"#94a3b8"}}>📅 {task.due}</span>}
+        {task.updated_at && <span style={{fontSize:"10px",color:"#cbd5e1",marginLeft:"auto"}}>✏️ {formatDateTime(task.updated_at)}{task.updated_by ? ` · ${task.updated_by}` : ""}</span>}
       </div>
+
       {expanded && (
         <div style={{marginTop:"10px",paddingTop:"10px",borderTop:`1px solid ${quadrant.border}`}}>
+          {/* Notes section - prominently displayed */}
+          <div style={{marginBottom:"10px",background:quadrant.light,borderRadius:"8px",padding:"8px 10px"}}>
+            <label style={{fontSize:"10px",color:quadrant.color,fontWeight:800,textTransform:"uppercase",display:"block",marginBottom:"4px",letterSpacing:"0.08em"}}>📝 Notes / Updates</label>
+            <textarea value={task.notes} onChange={e=>onUpdate({...task, notes:e.target.value, updated_at:new Date().toISOString()})}
+              placeholder="Add notes, updates, links, or context here..." rows={3}
+              style={{fontSize:"12px",border:`1px solid ${quadrant.border}`,borderRadius:"6px",padding:"5px 8px",fontFamily:"inherit",width:"100%",boxSizing:"border-box",resize:"vertical",background:"#fff",lineHeight:1.5}}/>
+          </div>
           <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
-            {[{label:"Status",value:task.status,opts:STATUS_OPTIONS,key:"status"},{label:"Priority",value:task.priority,opts:PRIORITY_OPTIONS,key:"priority"},{label:"Business",value:task.biz,opts:BUSINESSES,key:"biz"},{label:"Assignee",value:task.assignee,opts:["", ...TEAM_MEMBERS],key:"assignee"}].map(f=>(
+            {[{label:"Status",value:task.status,opts:STATUS_OPTIONS,key:"status"},{label:"Priority",value:task.priority,opts:PRIORITY_OPTIONS,key:"priority"},{label:"Business",value:task.biz,opts:BUSINESSES,key:"biz"},{label:"Assignee",value:task.assignee,opts:["", ...TEAM_MEMBERS],key:"assignee"},{label:"Updated By",value:task.updated_by||"",opts:["", ...TEAM_MEMBERS],key:"updated_by"}].map(f=>(
               <div key={f.key} style={{display:"flex",flexDirection:"column",gap:"2px"}}>
                 <label style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.label}</label>
-                <select value={f.value} onChange={e=>onUpdate({...task,[f.key]:e.target.value})} style={{fontSize:"12px",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 6px",fontFamily:"inherit"}}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
+                <select value={f.value} onChange={e=>onUpdate({...task,[f.key]:e.target.value,updated_at:new Date().toISOString()})} style={{fontSize:"12px",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 6px",fontFamily:"inherit"}}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
               </div>
             ))}
             <div style={{display:"flex",flexDirection:"column",gap:"2px"}}>
               <label style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>Due Date</label>
-              <input type="date" value={task.due} onChange={e=>onUpdate({...task,due:e.target.value})} style={{fontSize:"12px",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 6px",fontFamily:"inherit"}}/>
+              <input type="date" value={task.due} onChange={e=>onUpdate({...task,due:e.target.value,updated_at:new Date().toISOString()})} style={{fontSize:"12px",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 6px",fontFamily:"inherit"}}/>
             </div>
           </div>
-          <div style={{marginBottom:"8px"}}>
-            <label style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,textTransform:"uppercase",display:"block",marginBottom:"3px"}}>Notes / SMART Goal</label>
-            <textarea value={task.notes} onChange={e=>onUpdate({...task,notes:e.target.value})} placeholder="e.g. SMART goal: Finalize by 10/25 with 15 confirmed attendees..." rows={2} style={{fontSize:"12px",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"5px 8px",fontFamily:"inherit",width:"100%",boxSizing:"border-box",resize:"vertical"}}/>
-          </div>
-          <SubtaskList subtasks={task.subtasks||[]} onChange={subs=>onUpdate({...task,subtasks:subs})}/>
+          <SubtaskList subtasks={task.subtasks||[]} onChange={subs=>onUpdate({...task,subtasks:subs,updated_at:new Date().toISOString()})}/>
+          {task.updated_at && <div style={{marginTop:"8px",fontSize:"10px",color:"#cbd5e1",textAlign:"right"}}>Last updated: {formatDateTime(task.updated_at)}{task.updated_by ? ` by ${task.updated_by}` : ""}</div>}
         </div>
       )}
     </div>
@@ -150,7 +171,7 @@ function AddTaskRow({ quadrant, onAdd }) {
   const [assignee, setAssignee] = useState("");
   const [biz, setBiz] = useState("FLY");
   const defaultPriority = {do:"HI",schedule:"HI",delegate:"MID",eliminate:"LOW"}[quadrant.id];
-  const submit = () => { if (text.trim()) { onAdd({text:text.trim(),assignee,biz,priority:defaultPriority,status:"Not Started",due:"",notes:"",subtasks:[]}); setText("");setAssignee("");setBiz("FLY");setOpen(false); } };
+  const submit = () => { if (text.trim()) { onAdd({text:text.trim(),assignee,biz,priority:defaultPriority,status:"Not Started",due:"",notes:"",subtasks:[],updated_at:new Date().toISOString(),updated_by:""}); setText("");setAssignee("");setBiz("FLY");setOpen(false); } };
   if (!open) return <button onClick={()=>setOpen(true)} style={{width:"100%",background:"none",border:`1.5px dashed ${quadrant.border}`,borderRadius:"8px",padding:"8px",fontSize:"12px",color:quadrant.color,cursor:"pointer",fontWeight:600,marginTop:"4px"}} onMouseEnter={e=>e.currentTarget.style.background=quadrant.bg} onMouseLeave={e=>e.currentTarget.style.background="none"}>+ Add task</button>;
   return (
     <div style={{background:quadrant.light,border:`1.5px solid ${quadrant.border}`,borderRadius:"10px",padding:"10px",marginTop:"4px"}}>
@@ -168,8 +189,9 @@ function AddTaskRow({ quadrant, onAdd }) {
 }
 
 function QuadrantPanel({ quadrant, tasks, onAdd, onUpdate, onDelete, onMove }) {
-  const active = tasks.filter(t=>t.status!=="Done");
+  const active = tasks.filter(t=>t.status!=="Done"&&t.status!=="Cancelled");
   const done = tasks.filter(t=>t.status==="Done");
+  const cancelled = tasks.filter(t=>t.status==="Cancelled");
   return (
     <div style={{background:quadrant.bg,border:`2px solid ${quadrant.border}`,borderRadius:"14px",padding:"14px",display:"flex",flexDirection:"column",minHeight:"280px"}}>
       <div style={{marginBottom:"12px"}}>
@@ -185,6 +207,7 @@ function QuadrantPanel({ quadrant, tasks, onAdd, onUpdate, onDelete, onMove }) {
       </div>
       <div style={{flex:1}}>{active.map(task=>(<TaskCard key={task.id} task={task} quadrant={quadrant} onUpdate={t=>onUpdate(quadrant.id,t)} onDelete={id=>onDelete(quadrant.id,id)} onMove={toId=>onMove(quadrant.id,task.id,toId)}/>))}</div>
       {done.length>0 && <details style={{marginTop:"4px"}}><summary style={{fontSize:"11px",color:quadrant.color,cursor:"pointer",fontWeight:600,opacity:0.7}}>✓ {done.length} completed</summary><div style={{opacity:0.5,marginTop:"4px"}}>{done.map(task=>(<TaskCard key={task.id} task={task} quadrant={quadrant} onUpdate={t=>onUpdate(quadrant.id,t)} onDelete={id=>onDelete(quadrant.id,id)} onMove={toId=>onMove(quadrant.id,task.id,toId)}/>))}</div></details>}
+      {cancelled.length>0 && <details style={{marginTop:"4px"}}><summary style={{fontSize:"11px",color:"#9ca3af",cursor:"pointer",fontWeight:600,opacity:0.7}}>✕ {cancelled.length} cancelled</summary><div style={{opacity:0.4,marginTop:"4px"}}>{cancelled.map(task=>(<TaskCard key={task.id} task={task} quadrant={quadrant} onUpdate={t=>onUpdate(quadrant.id,t)} onDelete={id=>onDelete(quadrant.id,id)} onMove={toId=>onMove(quadrant.id,task.id,toId)}/>))}</div></details>}
       <AddTaskRow quadrant={quadrant} onAdd={data=>onAdd(quadrant.id,data)}/>
     </div>
   );
@@ -195,19 +218,19 @@ function WeekHistoryView({ history, onClose }) {
   const week = history[sel];
   if (!week) return null;
   const all = Object.values(week.tasks).flat();
-  const done=all.filter(t=>t.status==="Done"), pushed=all.filter(t=>t.status==="Pushed");
+  const done=all.filter(t=>t.status==="Done"), cancelled=all.filter(t=>t.status==="Cancelled");
   const inProg=all.filter(t=>t.status==="In Progress"), notStarted=all.filter(t=>t.status==="Not Started");
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
       <div style={{background:"#fff",borderRadius:"16px",width:"100%",maxWidth:"820px",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#0f172a",borderRadius:"16px 16px 0 0"}}>
-          <div><div style={{fontSize:"18px",fontWeight:800,color:"#fff"}}>Week-Over-Week History</div><div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px"}}>Track what was accomplished and what was pushed</div></div>
+          <div><div style={{fontSize:"18px",fontWeight:800,color:"#fff"}}>Week-Over-Week History</div><div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px"}}>Stored in Supabase database permanently</div></div>
           <button onClick={onClose} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"20px"}}>✕</button>
         </div>
         <div style={{display:"flex",borderBottom:"1px solid #e2e8f0",overflowX:"auto",padding:"0 16px",background:"#f8fafc"}}>{history.map((w,i)=>(<button key={i} onClick={()=>setSel(i)} style={{padding:"10px 16px",border:"none",background:"none",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap",color:sel===i?"#0f172a":"#94a3b8",borderBottom:sel===i?"2px solid #0f172a":"2px solid transparent"}}>{w.label}{i===history.length-1?" (current)":""}</button>))}</div>
         <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
-          <div style={{display:"flex",gap:"10px",marginBottom:"20px",flexWrap:"wrap"}}>{[{label:"✅ Done",items:done,color:"#166534",bg:"#dcfce7"},{label:"🔄 In Progress",items:inProg,color:"#92400e",bg:"#fef9c3"},{label:"⬆️ Pushed",items:pushed,color:"#6d28d9",bg:"#ede9fe"},{label:"⭕ Not Started",items:notStarted,color:"#475569",bg:"#f1f5f9"}].map(s=>(<div key={s.label} style={{background:s.bg,borderRadius:"10px",padding:"10px 16px",minWidth:"100px",textAlign:"center"}}><div style={{fontSize:"22px",fontWeight:800,color:s.color}}>{s.items.length}</div><div style={{fontSize:"11px",color:s.color,fontWeight:700}}>{s.label}</div></div>))}</div>
-          {[{label:"✅ Completed",items:done,color:"#166534",bg:"#f0fdf4",border:"#bbf7d0"},{label:"⬆️ Pushed",items:pushed,color:"#6d28d9",bg:"#faf5ff",border:"#ddd6fe"},{label:"🔄 In Progress",items:inProg,color:"#92400e",bg:"#fffbeb",border:"#fcd34d"}].map(section=>(section.items.length>0 && <div key={section.label} style={{marginBottom:"18px"}}><div style={{fontSize:"13px",fontWeight:800,color:section.color,marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.08em"}}>{section.label}</div>{section.items.map(t=>(<div key={t.id} style={{background:section.bg,border:`1px solid ${section.border}`,borderRadius:"8px",padding:"8px 12px",marginBottom:"5px"}}><div style={{fontSize:"13px",fontWeight:500,color:section.color}}>{t.text}</div><div style={{display:"flex",gap:"6px",marginTop:"3px"}}><Tag label={t.biz} style={{background:BIZ_COLORS[t.biz]?.bg,color:BIZ_COLORS[t.biz]?.color}}/>{t.assignee && <span style={{fontSize:"11px",color:"#94a3b8"}}>👤 {t.assignee}</span>}</div></div>))}</div>))}
+          <div style={{display:"flex",gap:"10px",marginBottom:"20px",flexWrap:"wrap"}}>{[{label:"✅ Done",items:done,color:"#166534",bg:"#dcfce7"},{label:"🔄 In Progress",items:inProg,color:"#92400e",bg:"#fef9c3"},{label:"✕ Cancelled",items:cancelled,color:"#6b7280",bg:"#f3f4f6"},{label:"⭕ Not Started",items:notStarted,color:"#475569",bg:"#f1f5f9"}].map(s=>(<div key={s.label} style={{background:s.bg,borderRadius:"10px",padding:"10px 16px",minWidth:"100px",textAlign:"center"}}><div style={{fontSize:"22px",fontWeight:800,color:s.color}}>{s.items.length}</div><div style={{fontSize:"11px",color:s.color,fontWeight:700}}>{s.label}</div></div>))}</div>
+          {[{label:"✅ Completed",items:done,color:"#166534",bg:"#f0fdf4",border:"#bbf7d0"},{label:"🔄 Still In Progress",items:inProg,color:"#92400e",bg:"#fffbeb",border:"#fcd34d"},{label:"✕ Cancelled",items:cancelled,color:"#6b7280",bg:"#f9fafb",border:"#e5e7eb"}].map(section=>(section.items.length>0 && <div key={section.label} style={{marginBottom:"18px"}}><div style={{fontSize:"13px",fontWeight:800,color:section.color,marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.08em"}}>{section.label}</div>{section.items.map(t=>(<div key={t.id} style={{background:section.bg,border:`1px solid ${section.border}`,borderRadius:"8px",padding:"8px 12px",marginBottom:"5px"}}><div style={{fontSize:"13px",fontWeight:500,color:section.color}}>{t.text}</div><div style={{display:"flex",gap:"6px",marginTop:"3px",flexWrap:"wrap"}}><Tag label={t.biz} style={{background:BIZ_COLORS[t.biz]?.bg,color:BIZ_COLORS[t.biz]?.color}}/>{t.assignee && <span style={{fontSize:"11px",color:"#94a3b8"}}>👤 {t.assignee}</span>}{t.updated_at && <span style={{fontSize:"10px",color:"#cbd5e1"}}>✏️ {formatDateTime(t.updated_at)}{t.updated_by?` · ${t.updated_by}":""}</span>}{t.notes && <span style={{fontSize:"11px",color:"#94a3b8",fontStyle:"italic"}}>"{t.notes.substring(0,60)}{t.notes.length>60?"...":""}"</span>}</div></div>))}</div>))}
         </div>
       </div>
     </div>
@@ -216,16 +239,21 @@ function WeekHistoryView({ history, onClose }) {
 
 function WeeklyResetModal({ tasks, currentWeek, onConfirm, onCancel }) {
   const all = Object.values(tasks).flat();
-  const done=all.filter(t=>t.status==="Done").length, pushed=all.filter(t=>t.status==="Pushed").length;
+  const done=all.filter(t=>t.status==="Done").length;
+  const cancelled=all.filter(t=>t.status==="Cancelled").length;
   const active=all.filter(t=>t.status==="In Progress"||t.status==="Not Started").length;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
       <div style={{background:"#fff",borderRadius:"16px",width:"100%",maxWidth:"480px",padding:"28px",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
         <div style={{fontSize:"22px",fontWeight:800,color:"#0f172a",marginBottom:"4px"}}>🔄 Start New Week</div>
         <div style={{fontSize:"13px",color:"#64748b",marginBottom:"20px"}}>Archive <strong>{currentWeek}</strong> and reset for the next week.</div>
-        <div style={{display:"flex",gap:"10px",marginBottom:"20px"}}>{[{label:"Will be archived",value:done,color:"#166534",bg:"#dcfce7",sub:"Done tasks"},{label:"Will carry forward",value:active,color:"#1d4ed8",bg:"#dbeafe",sub:"Active tasks"},{label:"Flagged as pushed",value:pushed,color:"#6d28d9",bg:"#ede9fe",sub:"Pushed tasks"}].map(s=>(<div key={s.sub} style={{flex:1,background:s.bg,borderRadius:"10px",padding:"10px",textAlign:"center"}}><div style={{fontSize:"24px",fontWeight:800,color:s.color}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700}}>{s.sub}</div></div>))}</div>
+        <div style={{display:"flex",gap:"10px",marginBottom:"20px"}}>{[{label:"Will be archived",value:done,color:"#166534",bg:"#dcfce7",sub:"Done tasks"},{label:"Auto carry forward",value:active,color:"#1d4ed8",bg:"#dbeafe",sub:"Not Started + In Progress"},{label:"Will be archived",value:cancelled,color:"#6b7280",bg:"#f3f4f6",sub:"Cancelled tasks"}].map(s=>(<div key={s.sub} style={{flex:1,background:s.bg,borderRadius:"10px",padding:"10px",textAlign:"center"}}><div style={{fontSize:"24px",fontWeight:800,color:s.color}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700}}>{s.sub}</div></div>))}</div>
         <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px 14px",marginBottom:"20px",fontSize:"12px",color:"#64748b",lineHeight:1.6}}>
-          <strong style={{color:"#0f172a"}}>What happens on reset:</strong><br/>• ✅ Done tasks move to history archive<br/>• 🔄 Active tasks carry forward automatically<br/>• ⬆️ Pushed tasks carry forward and stay flagged<br/>• 📅 Board date updates to next week
+          <strong style={{color:"#0f172a"}}>What happens on reset:</strong><br/>
+          • ✅ Done tasks → archived in Supabase<br/>
+          • 🔄 Not Started + In Progress → <strong>auto-carry to next week</strong><br/>
+          • ✕ Cancelled → archived in Supabase<br/>
+          • 📅 Board date → updated to next week
         </div>
         <div style={{display:"flex",gap:"10px"}}>
           <button onClick={onConfirm} style={{flex:1,background:"#0f172a",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontSize:"14px",cursor:"pointer",fontWeight:700}}>✓ Reset & Start New Week</button>
@@ -235,6 +263,19 @@ function WeeklyResetModal({ tasks, currentWeek, onConfirm, onCancel }) {
     </div>
   );
 }
+
+// Print styles
+const printStyles = `
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .no-print { display: none !important; }
+  body { background: white !important; }
+  * { color: black !important; background: white !important; border-color: #ccc !important; box-shadow: none !important; }
+  h1 { font-size: 18px !important; }
+}
+`;
 
 const EMPTY_BOARD = { do:[], schedule:[], delegate:[], eliminate:[] };
 
@@ -253,6 +294,9 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = printStyles;
+    document.head.appendChild(style);
     const load = async () => {
       try {
         const data = await sb.from("tasks").select("*");
@@ -297,14 +341,20 @@ export default function App() {
   const handleReset = async () => {
     setHistory(prev => [...prev, {label: currentWeek, tasks: JSON.parse(JSON.stringify(tasks))}]);
     const carry = {};
-    QUADRANTS.forEach(q => { carry[q.id] = tasks[q.id].filter(t=>t.status!=="Done").map(t=>({...t, status: t.status==="Pushed"?"Not Started":t.status})); });
-    for (const t of Object.values(tasks).flat().filter(t=>t.status==="Done")) {
+    // Not Started and In Progress auto-carry forward
+    QUADRANTS.forEach(q => {
+      carry[q.id] = tasks[q.id].filter(t=>t.status==="Not Started"||t.status==="In Progress");
+    });
+    // Archive Done and Cancelled tasks in DB
+    for (const t of Object.values(tasks).flat().filter(t=>t.status==="Done"||t.status==="Cancelled")) {
       try { await sb.from("tasks").update({archived:true}, "id", t.id); } catch(e) {}
     }
     setTasks(carry);
     setCurrentWeek(getWeekLabel());
     setShowReset(false);
   };
+
+  const handlePrint = () => window.print();
 
   const filtered = (qId) => tasks[qId].filter(t => {
     if (memberFilter!=="All" && t.assignee!==memberFilter) return false;
@@ -317,36 +367,39 @@ export default function App() {
   const allTasks = Object.values(tasks).flat();
   const FilterBtn = ({value, current, onClick, label}) => <button onClick={onClick} style={{border:"1.5px solid #e2e8f0",borderRadius:"7px",padding:"4px 10px",fontSize:"12px",cursor:"pointer",fontWeight:600,background:current===value?"#0f172a":"#fff",color:current===value?"#fff":"#64748b",transition:"all 0.15s",whiteSpace:"nowrap"}}>{label||value}</button>;
 
-  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafc",fontFamily:"system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:"32px",marginBottom:"12px"}}>⏳</div><div style={{fontSize:"16px",fontWeight:700,color:"#0f172a"}}>Loading Priority Matrix...</div><div style={{fontSize:"13px",color:"#94a3b8",marginTop:"4px"}}>Connecting to database</div></div></div>;
-
-  if (error) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafc",fontFamily:"system-ui"}}><div style={{textAlign:"center",maxWidth:"480px",padding:"32px",background:"#fff",borderRadius:"16px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)"}}><div style={{fontSize:"32px",marginBottom:"12px"}}>⚠️</div><div style={{fontSize:"16px",fontWeight:700,color:"#0f172a",marginBottom:"8px"}}>Database Connection Error</div><div style={{fontSize:"13px",color:"#64748b",marginBottom:"16px"}}>{error}</div><div style={{background:"#f8fafc",borderRadius:"8px",padding:"12px",fontSize:"12px",color:"#475569",textAlign:"left"}}><strong>Check:</strong><br/>1. SUPABASE_URL is set correctly<br/>2. SUPABASE_ANON_KEY is set correctly<br/>3. The tasks table has been created<br/>4. Row Level Security is disabled or configured</div></div></div>;
+  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafc",fontFamily:"system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:"32px",marginBottom:"12px"}}>⏳</div><div style={{fontSize:"16px",fontWeight:700,color:"#0f172a"}}>Loading Priority Matrix...</div></div></div>;
+  if (error) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafc",fontFamily:"system-ui"}}><div style={{textAlign:"center",maxWidth:"480px",padding:"32px",background:"#fff",borderRadius:"16px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)"}}><div style={{fontSize:"32px",marginBottom:"12px"}}>⚠️</div><div style={{fontSize:"16px",fontWeight:700,color:"#0f172a",marginBottom:"8px"}}>Database Connection Error</div><div style={{fontSize:"13px",color:"#64748b",marginBottom:"16px"}}>{error}</div></div></div>;
 
   return (
-    <div style={{fontFamily:"'DM Sans','Segoe UI',system-ui,sans-serif",minHeight:"100vh",background:"#f8fafc",padding:"18px 20px 40px",boxSizing:"border-box"}}>
+    <div id="print-area" style={{fontFamily:"'DM Sans','Segoe UI',system-ui,sans-serif",minHeight:"100vh",background:"#f8fafc",padding:"18px 20px 40px",boxSizing:"border-box"}}>
       {showReset && <WeeklyResetModal tasks={tasks} currentWeek={currentWeek} onConfirm={handleReset} onCancel={()=>setShowReset(false)}/>}
       {showHistory && <WeekHistoryView history={[...history,{label:currentWeek+" (current)",tasks}]} onClose={()=>setShowHistory(false)}/>}
       <div style={{maxWidth:"1180px",margin:"0 auto"}}>
         <div style={{marginBottom:"16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:"12px"}}>
             <div>
-              <div style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"4px"}}>
+              <div style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"6px"}}>
                 {["FLY","TPF"].map(b=>(<span key={b} style={{background:BIZ_COLORS[b].bg,color:BIZ_COLORS[b].color,border:`1.5px solid ${BIZ_COLORS[b].border}`,borderRadius:"6px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.08em"}}>{b}</span>))}
-                <span style={{fontSize:"12px",color:"#94a3b8",fontWeight:600}}>📅 {currentWeek}</span>
                 {saving && <span style={{fontSize:"11px",background:"#fef9c3",color:"#92400e",borderRadius:"99px",padding:"2px 8px",fontWeight:600}}>💾 Saving...</span>}
                 {history.length>0 && <span style={{fontSize:"11px",background:"#f1f5f9",color:"#64748b",borderRadius:"99px",padding:"2px 8px",fontWeight:600}}>{history.length} week{history.length>1?"s":""} archived</span>}
               </div>
-              <h1 style={{margin:0,fontSize:"22px",fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>Priority Matrix</h1>
-              <p style={{margin:"2px 0 0",fontSize:"12px",color:"#94a3b8"}}>Focus on what moves the needle. Break big goals into action steps.</p>
+              {/* LARGE week heading as requested */}
+              <div style={{fontSize:"13px",fontWeight:700,color:"#1d4ed8",letterSpacing:"0.02em",marginBottom:"2px"}}>📅 {currentWeek}</div>
+              <h1 style={{margin:0,fontSize:"26px",fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>Priority Matrix</h1>
+              <p style={{margin:"2px 0 0",fontSize:"12px",color:"#94a3b8"}}>Focus on what moves the needle. Not Started & In Progress tasks auto-carry each week.</p>
             </div>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center"}}>
-              {[{label:"Do Now",value:tasks.do.filter(t=>t.status!=="Done").length,color:"#0f766e",bg:"#ccfbf1"},{label:"In Progress",value:allTasks.filter(t=>t.status==="In Progress").length,color:"#b45309",bg:"#fef3c7"},{label:"Active",value:allTasks.filter(t=>t.status!=="Done").length,color:"#1d4ed8",bg:"#dbeafe"},{label:"Done",value:allTasks.filter(t=>t.status==="Done").length,color:"#166534",bg:"#dcfce7"}].map(s=>(<div key={s.label} style={{background:s.bg,borderRadius:"10px",padding:"6px 12px",textAlign:"center",border:`1px solid ${s.color}20`}}><div style={{fontSize:"18px",fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",marginTop:"1px"}}>{s.label}</div></div>))}
-              <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
+              {[{label:"Do Now",value:tasks.do.filter(t=>t.status!=="Done"&&t.status!=="Cancelled").length,color:"#0f766e",bg:"#ccfbf1"},{label:"In Progress",value:allTasks.filter(t=>t.status==="In Progress").length,color:"#b45309",bg:"#fef3c7"},{label:"Active",value:allTasks.filter(t=>t.status!=="Done"&&t.status!=="Cancelled").length,color:"#1d4ed8",bg:"#dbeafe"},{label:"Done",value:allTasks.filter(t=>t.status==="Done").length,color:"#166534",bg:"#dcfce7"}].map(s=>(<div key={s.label} style={{background:s.bg,borderRadius:"10px",padding:"6px 12px",textAlign:"center",border:`1px solid ${s.color}20`}}><div style={{fontSize:"18px",fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",marginTop:"1px"}}>{s.label}</div></div>))}
+              <div className="no-print" style={{display:"flex",flexDirection:"column",gap:"5px"}}>
                 <button onClick={()=>setShowHistory(true)} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 14px",fontSize:"12px",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>📊 View History</button>
-                <button onClick={()=>setShowReset(true)} style={{background:"#0f172a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 14px",fontSize:"12px",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>🔄 New Week</button>
+                <div style={{display:"flex",gap:"4px"}}>
+                  <button onClick={()=>setShowReset(true)} style={{flex:1,background:"#0f172a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 10px",fontSize:"12px",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>🔄 New Week</button>
+                  <button onClick={handlePrint} style={{background:"#475569",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 10px",fontSize:"12px",cursor:"pointer",fontWeight:700}} title="Print clean B&W version">🖨️</button>
+                </div>
               </div>
             </div>
           </div>
-          <div style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
+          <div className="no-print" style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search tasks..." style={{border:"1.5px solid #e2e8f0",borderRadius:"8px",padding:"5px 12px",fontSize:"13px",outline:"none",background:"#fff",minWidth:"160px",fontFamily:"inherit"}}/>
             <div style={{display:"flex",gap:"4px",alignItems:"center"}}><span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>Team:</span><FilterBtn value="All" current={memberFilter} onClick={()=>setMemberFilter("All")}/>{TEAM_MEMBERS.map(m=><FilterBtn key={m} value={m} current={memberFilter} onClick={()=>setMemberFilter(m)} label={m}/>)}</div>
             <div style={{display:"flex",gap:"4px",alignItems:"center"}}><span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>Biz:</span>{["All",...BUSINESSES].map(b=><FilterBtn key={b} value={b} current={bizFilter} onClick={()=>setBizFilter(b)}/>)}</div>
@@ -364,11 +417,11 @@ export default function App() {
           <QuadrantPanel quadrant={QUADRANTS[2]} tasks={filtered("delegate")} onAdd={addTask} onUpdate={updateTask} onDelete={deleteTask} onMove={moveTask}/>
         </div>
         <div style={{textAlign:"center",marginTop:"8px"}}><span style={{fontSize:"10px",color:"#cbd5e1",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase"}}>↑ High Importance &nbsp;&nbsp; Low Importance ↓</span></div>
-        <div style={{marginTop:"12px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px 16px",display:"flex",gap:"16px",flexWrap:"wrap",alignItems:"center"}}>
+        <div className="no-print" style={{marginTop:"12px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px 16px",display:"flex",gap:"16px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.1em"}}>Tips:</span>
-          {[{icon:"✏️",text:"Click text to rename"},{icon:"▼",text:"Expand for subtasks & notes"},{icon:"☑️",text:"Check off subtasks"},{icon:"⇄",text:"Move between quadrants"},{icon:"🔄",text:"New Week archives done tasks"},{icon:"📊",text:"View History shows progress"}].map(t=>(<span key={t.text} style={{fontSize:"12px",color:"#64748b"}}>{t.icon} {t.text}</span>))}
+          {[{icon:"✏️",text:"Click text to rename"},{icon:"▼",text:"Expand for notes & details"},{icon:"📝",text:"Notes visible when expanded"},{icon:"✏️",text:"Last edit tracked with timestamp"},{icon:"🔄",text:"Not Started + In Progress auto-carry"},{icon:"🖨️",text:"Print button for clean B&W view"}].map(t=>(<span key={t.text} style={{fontSize:"12px",color:"#64748b"}}>{t.icon} {t.text}</span>))}
         </div>
       </div>
     </div>
   );
-}
+            }
