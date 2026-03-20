@@ -88,7 +88,7 @@ function SubtaskList({ subtasks, onChange }) {
         {subtasks.length>0 && <span style={{fontSize:"11px",fontWeight:700,color:pct===100?"#166534":"#b45309"}}>{pct}%</span>}
       </div>
       {subtasks.length>0 && <div style={{height:"4px",background:"#e2e8f0",borderRadius:"99px",marginBottom:"8px",overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:pct===100?"#22c55e":"#3b82f6",borderRadius:"99px",transition:"width 0.3s"}}/></div>}
-      {subtasks.map(s=>(<div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:"6px",marginBottom:"5px"}}><input type="checkbox" checked={s.done} onChange={()=>toggle(s.id)} style={{marginTop:"2px",cursor:"pointer",accentColor:"#0f766e"}}/><span style={{flex:1,fontSize:"12px",color:s.done?"#94a3b8":"#334155",textDecoration:s.done?"line-through":"none",lineHeight:1.4}}>{s.text}</span><button onClick={()=>remove(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"11px",color:"#64748b",padding:"0 2px"}}>✕</button></div>))}
+      {subtasks.map(s=>(<div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:"6px",marginBottom:"5px"}}><input type="checkbox" checked={s.done} onChange={()=>toggle(s.id)} style={{marginTop:"2px",cursor:"pointer",accentColor:"#0f766e"}}/><span style={{flex:1,fontSize:"12px",color:s.done?"#94a3b8":"#334155",textDecoration:s.done?"line-through":"none",lineHeight:1.4}}>{s.text}</span><button onClick={()=>remove(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"11px",color:"#64748b",padding:"0 2px"}}>x</button></div>))}
       <div style={{display:"flex",gap:"4px",marginTop:"6px"}}>
         <input value={newText} onChange={e=>setNewText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="Add actionable subtask..." style={{flex:1,fontSize:"12px",border:"1px dashed #cbd5e1",borderRadius:"6px",padding:"4px 8px",outline:"none",fontFamily:"inherit",background:"#f8fafc",color:"#1e293b"}}/>
         <button onClick={add} style={{background:"#0f172a",color:"#fff",border:"none",borderRadius:"6px",padding:"4px 10px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>+</button>
@@ -121,11 +121,11 @@ function TaskCard({ task, quadrant, onUpdate, onDelete, onMove }) {
             <button onClick={()=>setShowMove(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",color:"#94a3b8",padding:"1px 3px"}}>⇄</button>
             {showMove && <div style={{position:"absolute",right:0,top:"20px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"4px",zIndex:100,boxShadow:"0 4px 12px rgba(0,0,0,0.12)",minWidth:"120px"}}>{QUADRANTS.filter(q=>q.id!==quadrant.id).map(q=>(<button key={q.id} onClick={()=>{onMove(q.id);setShowMove(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"none",border:"none",padding:"5px 8px",fontSize:"11px",cursor:"pointer",borderRadius:"5px",color:q.color,fontWeight:700}} onMouseEnter={e=>e.currentTarget.style.background=q.bg} onMouseLeave={e=>e.currentTarget.style.background="none"}>→ {q.label}</button>))}</div>}
           </div>
-          <button onClick={()=>onDelete(task.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",color:"#94a3b8",padding:"1px 3px"}}>✕</button>
+          <button onClick={()=>onDelete(task.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:"12px",color:"#94a3b8",padding:"1px 3px"}}>x</button>
         </div>
       </div>
       {editing
-        ? <input autoFocus value={draft} onChange={e=>setDraft(e.target.value)} onBlur={save} onKeyDown={e=>e.key==="Enter"&&save()} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:"6px",outline:"none",fontSize:"13px",fontFamily:"inherit",background:"#f8fafc",color:"#1e293b",padding:"4px 6px",marginBottom:"6px"}}/>
+        ? <input autoFocus value={draft} onChange={e=>setDraft(e.target.value)} onBlur={save} onKeyDown={e=>e.key==="Enter"&&save()} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:"6px",outline:"none",fontSize:"13px",fontFamily:"inherit",background:"#f8fafc",color:"#1e293b",padding:"4px 6px",marginBottom:"6px",boxSizing:"border-box"}}/>
         : <div onClick={()=>setEditing(true)} style={{fontSize:"13px",fontWeight:500,color:"#1e293b",cursor:"text",lineHeight:1.4,marginBottom:"5px",minHeight:"18px"}}>{task.text}</div>
       }
       {task.subtasks?.length>0 && !expanded && <div style={{height:"3px",background:"#e2e8f0",borderRadius:"99px",marginBottom:"5px",overflow:"hidden"}}><div style={{height:"100%",width:(subtaskPct||0)+"%",background:subtaskPct===100?"#22c55e":"#3b82f6",borderRadius:"99px"}}/></div>}
@@ -221,7 +221,7 @@ function WeekHistoryView({ history, onClose }) {
       <div style={{background:"#fff",color:"#1e293b",borderRadius:"16px",width:"100%",maxWidth:"820px",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#0f172a",borderRadius:"16px 16px 0 0"}}>
           <div><div style={{fontSize:"18px",fontWeight:800,color:"#fff"}}>Week-Over-Week History</div><div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px"}}>Stored permanently in Supabase database</div></div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"20px"}}>✕</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"20px"}}>x</button>
         </div>
         <div style={{display:"flex",borderBottom:"1px solid #e2e8f0",overflowX:"auto",padding:"0 16px",background:"#f8fafc"}}>{history.map((w,i)=>(<button key={i} onClick={()=>setSel(i)} style={{padding:"10px 16px",border:"none",background:"none",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap",color:sel===i?"#0f172a":"#94a3b8",borderBottom:sel===i?"2px solid #0f172a":"2px solid transparent"}}>{w.label}{i===history.length-1?" (current)":""}</button>))}</div>
         <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
@@ -246,10 +246,7 @@ function WeeklyResetModal({ tasks, currentWeek, onConfirm, onCancel }) {
         <div style={{display:"flex",gap:"10px",marginBottom:"20px"}}>{[{label:"Will be archived",value:done,color:"#166534",bg:"#dcfce7",sub:"Done tasks"},{label:"Auto carry forward",value:active,color:"#1d4ed8",bg:"#dbeafe",sub:"Not Started + In Progress"},{label:"Will be archived",value:cancelled,color:"#6b7280",bg:"#f3f4f6",sub:"Cancelled tasks"}].map(s=>(<div key={s.sub} style={{flex:1,background:s.bg,borderRadius:"10px",padding:"10px",textAlign:"center"}}><div style={{fontSize:"24px",fontWeight:800,color:s.color}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700}}>{s.sub}</div></div>))}</div>
         <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px 14px",marginBottom:"20px",fontSize:"12px",color:"#64748b",lineHeight:1.6}}>
           <strong style={{color:"#0f172a"}}>What happens on reset:</strong><br/>
-          • Done tasks archived in Supabase<br/>
-          • Not Started + In Progress auto-carry to next week<br/>
-          • Cancelled tasks archived in Supabase<br/>
-          • Board date updates to next week
+          Done + Cancelled tasks archived. Not Started + In Progress carry forward. Board date updates.
         </div>
         <div style={{display:"flex",gap:"10px"}}>
           <button onClick={onConfirm} style={{flex:1,background:"#0f172a",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontSize:"14px",cursor:"pointer",fontWeight:700}}>✓ Reset & Start New Week</button>
@@ -293,11 +290,18 @@ export default function App() {
 
   const addTask = async (qId, data) => {
     const newTask = { ...data, quadrant: qId, week_label: currentWeek, archived: false };
+    // Optimistically add to UI immediately with full data
+    const tempId = genId();
+    const optimisticTask = { ...newTask, id: tempId, subtasks: newTask.subtasks || [] };
+    setTasks(prev => ({...prev, [qId]: [...prev[qId], optimisticTask]}));
     setSaving(true);
     try {
       const result = await sb.from("tasks").insert(newTask);
       const saved = Array.isArray(result) ? result[0] : result;
-      setTasks(prev => ({...prev, [qId]: [...prev[qId], {...saved, subtasks: saved.subtasks||[]}]}));
+      if (saved && saved.id) {
+        // Replace temp task with real saved task, keeping original text if DB returns empty
+        setTasks(prev => ({...prev, [qId]: prev[qId].map(t => t.id===tempId ? {...newTask, ...saved, text: saved.text || newTask.text, subtasks: saved.subtasks || newTask.subtasks || []} : t)}));
+      }
     } catch(e) { console.error(e); }
     setSaving(false);
   };
@@ -360,7 +364,7 @@ export default function App() {
               </div>
               <div style={{fontSize:"16px",fontWeight:800,color:"#1d4ed8",letterSpacing:"0.01em",marginBottom:"3px"}}>📅 {currentWeek}</div>
               <h1 style={{margin:0,fontSize:"26px",fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>Priority Matrix</h1>
-              <p style={{margin:"2px 0 0",fontSize:"12px",color:"#64748b"}}>Not Started &amp; In Progress tasks auto-carry each week.</p>
+              <p style={{margin:"2px 0 0",fontSize:"12px",color:"#64748b"}}>Not Started & In Progress tasks auto-carry each week.</p>
             </div>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center"}}>
               {[{label:"Do Now",value:tasks.do.filter(t=>t.status!=="Done"&&t.status!=="Cancelled").length,color:"#0f766e",bg:"#ccfbf1"},{label:"In Progress",value:allTasks.filter(t=>t.status==="In Progress").length,color:"#b45309",bg:"#fef3c7"},{label:"Active",value:allTasks.filter(t=>t.status!=="Done"&&t.status!=="Cancelled").length,color:"#1d4ed8",bg:"#dbeafe"},{label:"Done",value:allTasks.filter(t=>t.status==="Done").length,color:"#166534",bg:"#dcfce7"}].map(s=>(<div key={s.label} style={{background:s.bg,borderRadius:"10px",padding:"6px 12px",textAlign:"center"}}><div style={{fontSize:"18px",fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div><div style={{fontSize:"10px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",marginTop:"1px"}}>{s.label}</div></div>))}
@@ -390,7 +394,7 @@ export default function App() {
           <QuadrantPanel quadrant={QUADRANTS[3]} tasks={filtered("eliminate")} onAdd={addTask} onUpdate={updateTask} onDelete={deleteTask} onMove={moveTask}/>
           <QuadrantPanel quadrant={QUADRANTS[2]} tasks={filtered("delegate")} onAdd={addTask} onUpdate={updateTask} onDelete={deleteTask} onMove={moveTask}/>
         </div>
-        <div style={{textAlign:"center",marginTop:"8px"}}><span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase"}}>↑ High Importance &nbsp;&nbsp; Low Importance ↓</span></div>
+        <div style={{textAlign:"center",marginTop:"8px"}}><span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase"}}>↑ High Importance   Low Importance ↓</span></div>
         <div className="no-print" style={{marginTop:"12px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px 16px",display:"flex",gap:"16px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:"11px",fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em"}}>Tips:</span>
           {[{icon:"✏️",text:"Click text to rename"},{icon:"▼",text:"Expand for notes & details"},{icon:"📝",text:"Notes field when expanded"},{icon:"✏️",text:"Tracks who edited & when"},{icon:"🔄",text:"Not Started + In Progress auto-carry"},{icon:"🖨️",text:"Print button for B&W printout"}].map(t=>(<span key={t.text} style={{fontSize:"12px",color:"#64748b"}}>{t.icon} {t.text}</span>))}
